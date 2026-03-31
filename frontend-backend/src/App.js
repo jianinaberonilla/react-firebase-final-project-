@@ -1,61 +1,57 @@
-import React, { useState, useEffect } from 'react';
-import { db } from './firebase'; // Ensure your firebase.js exports 'db'
-import { collection, addDoc, onSnapshot, query } from 'firebase/firestore';
-import './App.css'; 
+import { useState, useEffect } from "react";
+import { db } from "./firebase";
+import { collection, addDoc, getDocs } from "firebase/firestore";
+import "./App.css";
+
 
 function App() {
-  const [name, setName] = useState('');
-  const [course, setCourse] = useState('');
-  const [year, setYear] = useState('');
-  const [students, setStudents] = useState([]);
+  const [note, setNote] = useState("");
+  const [notes, setNotes] = useState([]);
 
-  // Fetch data from Firestore
-  useEffect(() => {
-    const q = query(collection(db, "students"));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const studentArr = [];
-      querySnapshot.forEach((doc) => {
-        studentArr.push({ ...doc.data(), id: doc.id });
-      });
-      setStudents(studentArr);
-    });
-    return () => unsubscribe();
-  }, []);
 
-  // Save data to Firestore
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (name !== "" && course !== "" && year !== "") {
-      await addDoc(collection(db, "students"), {
-        name,
-        course,
-        year,
-      });
-      setName(''); setCourse(''); setYear('');
-    }
+  const fetchNotes = async () => {
+    const data = await getDocs(collection(db, "notes"));
+    setNotes(data.docs.map((doc) => ({ ...doc.data(), id: doc.id })));
   };
 
-  return (
-    <div style={{ padding: '20px' }}>
-      <h2>Student Information Form</h2>
-      <form onSubmit={handleSave}>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" /><br/>
-        <input value={course} onChange={(e) => setCourse(e.target.value)} placeholder="Course" /><br/>
-        <input type="number" value={year} onChange={(e) => setYear(e.target.value)} placeholder="Year Level" /><br/>
-        <button type="submit">Save</button>
-      </form>
 
-      <hr />
-      <h3>Saved Records</h3>
-      <ul>
-        {students.map((student) => (
-          <li key={student.id}>
-            {student.name} - {student.course} (Year {student.year})
-          </li>
+  const saveNote = async () => {
+    if (note.trim() === "") return;
+    await addDoc(collection(db, "notes"), { text: note });
+    setNote("");
+    fetchNotes();
+  };
+
+
+  useEffect(() => {
+    fetchNotes();
+  }, []);
+
+
+  return (
+    <div className="container">
+      <h1>💕 My Notes</h1>
+      <div className="card">
+        <input
+          type="text"
+          placeholder="Enter a note..."
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+        />
+        <button onClick={saveNote}>💾 Save Note</button>
+      </div>
+      <div className="notes-list">
+        {notes.map((n) => (
+          <div key={n.id} className="note">
+            💗 {n.text}
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }
 
+
 export default App;
+
+
